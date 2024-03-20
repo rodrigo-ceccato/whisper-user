@@ -1,0 +1,7 @@
+Please proofread and correct any errors in the following transcription by the Whisper large-v3 model, ensuring the original structure of the text is maintained. After correcting, insert a divider and then list all relevant facts from the text in bullet points.
+
+After completing the corrections, please proceed with the following:
+- Insert a divider line.
+- Summarize the corrected text by listing all relevant facts in bullet points below the divider. Ensure each fact is concise and captures the essence of the information provided in the text.
+
+The input text is the following:
