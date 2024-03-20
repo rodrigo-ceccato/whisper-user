@@ -46,7 +46,7 @@ def process_folder(input_folder, output_file):
     transcriptions = []
 
     for root, _, files in os.walk(input_folder):
-        for file in files:
+        for file in sorted(files):
             file_path = os.path.join(root, file)
             if is_supported_format(file_path):
                 print(f"Processing {file_path}...")
@@ -56,19 +56,26 @@ def process_folder(input_folder, output_file):
                     file_path = temp_path
 
                 transcription = transcribe_audio(file_path, model)
-                corrected_transcription = append_gpt_prompt_correction(transcription)
-                transcriptions.append(corrected_transcription)
+                transcriptions.append(transcription)
 
                 if file_path != os.path.join(root, file):  # Cleanup if converted
                     os.remove(file_path)
 
-    with open(output_file, "w") as output:
-        output.write("\n".join(transcriptions))
+    transcription_w_prompt = append_gpt_prompt_correction(
+        "\n".join(transcriptions))
+
+    if (output_file is not None):
+        with open(output_file, "w") as output:
+         output.write(transcription_w_prompt)
+    else:
+        print(transcription_w_prompt)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transcribe audio files in a folder using Whisper and correct them with a GPT-4 prompt.")
     parser.add_argument("input_folder", type=str, help="The path to the input folder containing audio files.")
-    parser.add_argument("output_file", type=str, help="The path to the output text file for concatenated transcriptions.")
+    # if no output file argument, default to None
+    parser.add_argument("output_file", type=str,
+                        help="The path to the output text file for concatenated transcriptions.", default=None)
 
     args = parser.parse_args()
     process_folder(args.input_folder, args.output_file)
