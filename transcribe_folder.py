@@ -3,6 +3,7 @@ import os
 from whisper import load_model
 from audio_helpers import convert_audio_to_wav, is_supported_format
 import torch
+import subprocess
 
 def transcribe_audio(file_path, model):
     """
@@ -15,10 +16,11 @@ def transcribe_audio(file_path, model):
     Returns:
         str: The transcribed text.
     """
-    result = model.transcribe(file_path)
+    result = model.transcribe(file_path, verbose=False)
     return result['text']
 
-def append_gpt_prompt_correction(transcription):
+
+def gpt_prompt_correction():
     """
     Appends a GPT-4 prompt to the transcription to correct common mistakes.
     
@@ -33,7 +35,7 @@ def append_gpt_prompt_correction(transcription):
     with open("prompt.txt", "r") as prompt_file:
         gpt_prompt = prompt_file.read()
 
-    return transcription + gpt_prompt
+    return gpt_prompt
 
 def process_folder(input_folder, output_file):
     """
@@ -45,9 +47,18 @@ def process_folder(input_folder, output_file):
     """
 
     # device is GPU if we have more than 10GB of VRAM, otherwise CPU
-    DEVICE = "cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory > 10e9 else "cpu"
-    print(f"Using device: {DEVICE}")
-    model = load_model("large-v3", device=DEVICE)
+    MODEL = "small"
+    memory_required_per_model = {
+        "tiny": 1e9,
+        "base": 1e9,
+        "small": 2e9,
+        "medium": 5e9,
+        "large-v3": 10e9,
+    }
+    DEVICE = "cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(
+        0).total_memory > memory_required_per_model[MODEL] else "cpu"
+    print(f"Using device: {DEVICE} for model: {MODEL}")
+    model = load_model(MODEL, device=DEVICE)
     transcriptions = []
 
     for root, _, files in os.walk(input_folder):
@@ -56,7 +67,9 @@ def process_folder(input_folder, output_file):
             if is_supported_format(file_path):
                 print(f"Processing {file_path}...")
                 if not file_path.endswith('.wav'):
-                    temp_path = file_path + ".wav"
+                    temp_path = "./tmp-audio/temp.wav"
+                    # create a tmp folder if it doesn't exist
+                    subprocess.run(["mkdir", "-p", "./tmp-audio"])
                     convert_audio_to_wav(file_path, temp_path)
                     file_path = temp_path
 
@@ -64,11 +77,16 @@ def process_folder(input_folder, output_file):
                 transcription = transcribe_audio(file_path, model)
                 transcriptions.append(transcription)
 
-                if file_path != os.path.join(root, file):  # Cleanup if converted
+                # clean up if converted
+                if file_path == "./tmp-audio/temp.wav":
                     os.remove(file_path)
 
-    transcription_w_prompt = append_gpt_prompt_correction(
-        "\n".join(transcriptions))
+    transcription_w_prompt = "\n\n".join(transcriptions)
+
+    # add prompt at beginning of transcription
+    transcription_w_prompt = gpt_prompt_correction() + transcription_w_prompt
+
+    print("Transcription process completed.\n\n\n")
 
     if (output_file is not None):
         with open(output_file, "w") as output:
@@ -85,6 +103,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     process_folder(args.input_folder, args.output_file)
-
-    print(f"Transcription process completed.")
 
