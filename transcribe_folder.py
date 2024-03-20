@@ -2,6 +2,7 @@ import argparse
 import os
 from whisper import load_model
 from audio_helpers import convert_audio_to_wav, is_supported_format
+import torch
 
 def transcribe_audio(file_path, model):
     """
@@ -42,7 +43,11 @@ def process_folder(input_folder, output_file):
         input_folder (str): The path to the folder containing audio files.
         output_file (str): The path to the output text file.
     """
-    model = load_model("large-v3", device="cpu")
+
+    # device is GPU if we have more than 10GB of VRAM, otherwise CPU
+    DEVICE = "cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory > 10e9 else "cpu"
+    print(f"Using device: {DEVICE}")
+    model = load_model("large-v3", device=DEVICE)
     transcriptions = []
 
     for root, _, files in os.walk(input_folder):
@@ -81,5 +86,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     process_folder(args.input_folder, args.output_file)
 
-    print(f"Transcription process completed. Results saved to {args.output_file}.")
+    print(f"Transcription process completed.")
 
