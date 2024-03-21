@@ -2,3 +2,4 @@ input_folder/
 output.txt
 __pycache__/
 tmp-audio/
+.venv/

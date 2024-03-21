@@ -1,4 +1,5 @@
 audiosegment==0.23.0
+black==24.3.0
 certifi==2024.2.2
 charset-normalizer==3.3.2
 filelock==3.13.1
@@ -26,6 +27,7 @@ nvidia-nvjitlink-cu12==12.4.99
 nvidia-nvtx-cu12==12.1.105
 openai-whisper @ git+https://github.com/openai/whisper.git@ba3f3cd54b0e5b8ce1ab3de13e32122d0d5f98ab
 pydub==0.25.1
+pytest==8.1.1
 regex==2023.12.25
 requests==2.31.0
 sympy==1.12
